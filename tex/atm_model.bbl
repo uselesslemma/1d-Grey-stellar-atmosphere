@@ -1,0 +1,10 @@
+\begin{thebibliography}{}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+
+\bibitem[{{Goldsmith}(2013)}]{paul2013}
+{Goldsmith}, P.~F. 2013, \apj, 774, 134
+
+\bibitem[{{Iglesias} \& {Rogers}(1996)}]{opal}
+{Iglesias}, C.~A., \& {Rogers}, F.~J. 1996, \apj, 464, 943
+
+\end{thebibliography}

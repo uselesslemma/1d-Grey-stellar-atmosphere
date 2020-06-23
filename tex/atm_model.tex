@@ -1,0 +1,253 @@
+\documentclass[iop,revtex4]{emulateapj}
+\usepackage{amsmath}
+\usepackage{pifont}
+\usepackage{morefloats}
+\newcommand*\mean[1]{\bar{#1}}
+\usepackage[dvips]{color}
+\usepackage{lscape}
+\usepackage{dcolumn}
+\newcolumntype{d}[1]{D{.}{.}{#1}}
+\let\cleardoublepage\clearpage
+\begin{document}
+
+%move to acknowledgements 
+\submitted{}
+\title{Grey Stellar Atmosphere Model}
+
+%\text{,\hspace{5mm}}
+
+\author{Trevor Picard} 
+
+\affil{Department of Astronomy, New Mexico State University, Las Cruces, NM 88001, USA}
+\keywords{stars, atmospheres, gas physics, spectroscopy}
+
+\begin{abstract}
+
+Using Mathematica, we build and implement a 1D, plane parallel model of a B0I giant stellar atmosphere in thermal equilibrium. We utilize the Eddington approximation under the assumption that stellar atmospheres are typically a negligible fraction of the overall stellar radius (our model spans optical depths of $10^{-3}<\tau<10^{2}$). Furthermore, we adopt the Grey approximation, assuming that the $\nu$-dependent opacity is well represented by the Rosseland mean. Arbitrary mass fractions of $X=0.5$, $Y=0.4$, and $Z=0.1$ are chosen for an atmosphere composed of only H, He, and Si, where we assume silicon is not ionized beyond Si$^{++}$. We find that the main physical parameters (i.e., physical depth, temperature, opacity, overall mass density, and pressure) all increase monotonically with $\tau$. As expected, H$^{+}$ and Si$^{++}$ are the dominant species in the very high-$T$ atmosphere of a B0I star. In addition, it comes as no surprise that H$^{+}$ contributes the vast majority of free electrons to the pool. Lastly, ground state H$^{0}$ has the highest excitation fraction up to $\tau\sim50$, which is perhaps counterintuitive, yet physically sound. The results are qualitatively reasonable, suggesting that this particular model atmosphere is an acceptable first step in realistic modeling of stellar atmosphere. However, we find that our assumption about the negligible thickness of the atmosphere relative to the stellar radius may potentially be unsound.
+
+% alexis wuz here
+%{\raise.17ex\hbox{$\scriptstyle\sim$}}$10$ -- $10^{4}$ cm$^{-3}$
+
+\end{abstract}
+
+\section{Introduction} \label{intro}
+Astronomy has its fair share of complexity, the extent of which varies greatly between the systems under consideration. The physics of gaseous systems is one of the most intricate and multifaceted in astronomy, and thus major progress in this area of research has historically been a difficult undertaking. Astronomers are observationally limited to information that is obtained spectroscopically, which offers a somewhat limited picture of how gaseous systems truly behave in detail. As a result, the complex interplay between the microscopic and macroscopic properties of a gas currently cannot be represented in a simple, analytic fashion. Various numerical models have been developed to probe the conditions of a wide variety of gaseous systems, often with limited success. Development of increasingly sophisticated observational tools has challenged some of the rudimentary assumptions underlying present day models of gas physics, but interesting qualitative trends can be gleaned from crude models nonetheless.
+\par
+Stellar atmospheres constitute one system that can be modeled using gas physics. We choose to build a model atmosphere using computer code along with basic physical assumptions and approximations, then subsequently analyze the accuracy of the predictions it makes. Building a semi-realistic framework for stellar atmospheres could springboard into increasingly rigorous treatments of gas physics in the future, hopefully leading to a more precise understanding of the intricate interdependencies between parameters in both the microscopic and macroscopic regimes. Chasing the mythical unicorn of discovering a simple, analytic treatment that accurately reproduces observables in stellar atmospheres is bound to lead to important discoveries along the way.
+
+The layout of the paper is as follows. In Section 2 we describe all of the physics behind our model atmosphere formulation, the simplifying assumptions the model relies on, and some of the coding techniques employed. The results of the model are introduced in Section 3, and some of the most notable features are pointed out. Section 4 is where we discuss the results in more detail. In particular, we analyze the trends in the context of the physics and assumptions described in Section 2. Lastly, in Section 5 we restate what we conclude regarding the most important features of our model and discuss their implications. \\
+
+\section{Methods} \label{methods}
+%Provide a detailed description of the mathematical model including physical assumptions (plane parallel, mean opacity and its definition, etc), equations used, and methods of computation, including the iterative scheme employed (to obtain pressure gradient), root-solving and interpolation schemes with references to pre-written codes used (if any). After describing all the components, describe your algorithm for solution.
+
+The thickness of a typical stellar atmosphere is thought to be quite thin with respect to the entire stellar radius ($\lesssim~10^{-4}R_{*}$). Consequently, the angle a photon makes relative to the local normal vector ($\hat{s} \cdot \hat{r}=\cos\theta$) is roughly constant with depth throughout the entire atmosphere. This approximation allows us to treat local atmospheric structure in our model as a one-dimensional plane parallel slab, in which a single value of surface gravity should be fairly representative of the entire atmosphere.
+\par
+As an additional simplification, we assume that the radiation field $I_{\nu}(\tau_{\nu})$ is isotropic and azimuthally symmetric at all $\tau_{\nu}$. We can then adopt the Eddington treatment for our model atmosphere, which divides the specific intensity of each layer into separate hemispheres of ingoing and outgoing radiation.
+\begin{equation}
+I_{\nu}(\tau_{\nu})=I_{\nu}^{\text{out}}(\tau_{\nu})+I_{\nu}^{\text{in}}(\tau_{\nu})
+\end{equation}
+Outward traveling radiation emanates from the top hemisphere ($0\leq \theta \leq \pi/2$), while inward traveling radiation emanates from the bottom hemisphere ($\pi/2 \leq \theta \leq \pi$). Given this simplified geometry, we can solve the ``zeroth" moment of the radiative transfer equation to obtain a critical result, namely that there is no flux gradient in our simplified model stellar atmosphere. 
+\par
+Modeling a stellar atmosphere with precision requires determination of the source function $S_{\nu}(\tau_{\nu})$ that satisfies the higher moments of the transfer equation at each frequency. Since opacity $\chi_{\nu}$ depends on the detailed physical conditions of the gas, in theory an infinite number of equations would need to be solved simultaneously at each frequency to obtain a solution. Of course, this is unrealistic, so in our atmospheric model we adopt the Grey Approximation, which assumes that the mean opacity across all frequencies is reasonable approximation to the $\nu$-dependent opacity ($\chi_{\nu}=\mean\chi$). We use the Rosseland Mean Opacity, defined as
+\begin{equation}
+\frac{1}{\chi_{R}}=\frac{\int_{0}^{\infty}\frac{1}{\chi_{\nu}}\frac{dK_{\nu}}{dz}d\nu}{\int_{0}^{\infty}\frac{dK_{\nu}}{dz}d\nu}\text{,}
+\end{equation}
+where $\chi_{\nu}$ is the $\nu$-dependent opacity, $K_{\nu}$ is the second moment of specific intensity, and $z$ is atmospheric depth. The Opacity Project's OPAL code provides Rosseland mean opacity tables for a variety of elemental abundances \citep{opal}. In subsequent discussion of opacity we drop the subscript for simplicity ($\chi\equiv\chi_{R}$).
+\par
+Armed with simple solutions to the moments of the transfer equation, it is possible to obtain the temperature of an atmospheric layer as a function of optical depth. Assuming thermal equilibrium, we can equate our source function with the Planck function and integrate over all frequencies to obtain an analytic expression for $T(\tau)$. The integration yields
+\begin{equation}
+T^{4}(\tau)=\frac{3}{4}T_{eff}^{4}[\tau+q(\tau)]\text{,}
+\end{equation}
+where $T_{eff}$ is the blackbody temperature at the stellar photosphere and $q(\tau)$ is the Hopf function, which is used to correct for the anisotropy of radiation at small $\tau$. This correction itself assumes an average, $\nu$-independent opacity and a gas in thermal and radiative equilibrium.
+\par
+The mean opacity needed to solve a layer of atmosphere is dependent on both the temperature and density of gas ($\chi=\chi(\rho,T))$. Since we now have an expression for $T$ that depends only on $\tau$, we can fix the optical depth of each layer to obtain its temperature directly. On the other hand, gas density must come from the ideal gas equation
+\begin{equation}
+n=\frac{P_{g}}{kT}\text{,}
+\end{equation}
+where $P_{g}$ is the gas pressure (including electrons and nuclei) and $n$ is the layer's total number density of particles, which itself critically depends on the ionization ratios of each species within the gas. We must therefore employ the Saha equation, given by 
+\begin{equation}
+\frac{n_{j+1,k}}{n_{jk}}=\frac{C_{\Phi}T^{3/2}}{n_{e}}\frac{U_{j+1,k}(T)}{U_{jk}(T)}\exp\left\{-\frac{\chi_{Ijk}}{kT}\right\}\text{,}
+\end{equation}
+where $C_{\Phi}$ is a constant, $\chi_{Ijk}$ is the ionization potential of species $k$ in ionization state $j$, $U_{jk}$ is the partition function, and $n_{e}$ is the electron density. We unfortunately don't know $n_e$ \textit{a priori}, so we must solve a transcendental equation numerically to obtain a solution. This equation is
+\begin{equation}
+n_{e}=(n-n_{e})\sum_{k}\alpha_{k}\sum_{j=1}^{k+1}(j-1)f_{jk}\text{,}
+\end{equation}
+where $\alpha_{k}$ is the abundance fraction and $f_{jk}$ is the ionization fraction. Recursively solving Eq. 5 yields the value of of $f_{jk}$ for each species in the gas.
+
+
+\begin{deluxetable}{lc}[h!]
+\tablecaption{Model Parameters\label{params}}
+\tablehead{ &\colhead{Model}}
+\startdata
+Spectral Type			&B \\
+Radius ($R_{\odot}$)		&$\sim10$ \\
+$T_{eff}$ (K)			&26,000 \\
+$\log g$				&2.84 \\
+Composition			&H, He, \& Si \\
+$X$					&0.5 \\
+$Y$					&0.4 \\
+$Z$					&0.1 \\
+\enddata
+\tabletypesize{\scriptsize}
+\end{deluxetable}
+
+
+\par
+The final ingredient in the model is calculation of a pressure differential as each successive layer of the atmosphere is incremented. Under the assumption of hydrostatic equilibrium, the relation in question is
+\begin{equation}
+\Delta P=g\frac{\Delta\tau}{\chi(\rho,T)}\text{.}
+\end{equation}
+
+
+\begin{figure*}
+\plotone{phys.eps}
+\caption{Main physical quantities of the B0I atmosphere model as a function of optical depth. The \textit{top left} panel shows physical depth, the \textit{top right} panel shows temperature, the \textit{bottom left} panel shows the opacity, and the \textit{bottom right} panel shows total mass density. All of these properties increase monotonically with $\tau$.}
+\label{phys}
+\end{figure*}
+
+\begin{figure*}
+\plotone{pressures.eps}
+\caption{Pressures in the B0I atmosphere model as a function of optical depth. The \textit{left} panel shows how the total pressure and each of its contributors changes with depth. The black line is the total pressure, the red line is the radiation pressure, the blue line is the overall gas pressure (nuclei + electrons), the purple line is the electron pressure, and the green line is the nuclear pressure. The \textit{right} panel shows how the ratio of electron to total gas pressure changes with depth.}
+\label{P}
+\vspace{1cm}
+\end{figure*}
+
+As we have seen, determining the opacity of each subsequent layer requires knowledge of the mass density, which depends critically on $n_{e}$. Since the electron density is not known \textit{a priori}, we must make a guess for the opacity in the next layer using the properties of the previous layer. We then solve the pressure differential using our guess, average the opacity we obtain over the current and previous iterations, apply the more accurate opacity to obtain a closer pressure differential, then compare the results at some tolerance level (we chose $10^{-5}$). If the difference is greater than our tolerance we repeat the process, iterating as many times needed for convergence on $10^{-5}$. Once the pressure has converged on an acceptable value we assign the current values of all atmospheric parameters to the layer, increment $\tau$, then solve the next layer. The Mathematica code used to perform all of the aforementioned calculations is attached at the end of this paper for reference.
+\par
+The atmospheric model we run uses the input parameters shown in Table \ref{params}, which were chosen somewhat arbitrarily (although B0I kind of looks like \textit{boi}, as in \textit{``yeah boi!"}, so there's that). We assume that the atmosphere is composed of only the three elements listed, where H can be ionized once (the H$^{-}$ ion is not included) and He \& Si can both be ionized twice. The mass fraction of Si is therefore represented by $Z$.
+\par
+It is worth emphasizing again that our model atmosphere makes several simplifying assumptions regarding the underlying physics, and thus any trends observed should be treated with caution. In short, the approximations we have made are as follows:
+\begin{enumerate}
+\item Plane parallel slab of gas: the geometry of our stellar atmosphere can be approximated locally as a slab with a thickness much smaller than the overall stellar radius;
+\item Eddington approximation: the radiation in each layer is divided into two ``streams", which are upward and downward facing hemispheres of isotropic radiation;
+\item Grey approximation: $\nu$-dependent parameters of the radiative transfer equation are replaced by their averages across all $\nu$, making it possible to solve one equation rather than an infinite number;
+\item Thermal equilibrium: allows us to replace the source function for each layer with the Planck function (integrated across all $\nu$) to find $T(\tau)$, and also to perform detailed balancing with the Saha and Boltzmann equations;
+\item Hydrostatic equilibrium: convection and other bulk fluid motions are ignored;
+\item Simple composition: our model atmosphere contains only H$^{0}$, H$^{+}$, He$^{0}$, He$^{+}$, He$^{++}$, Si$^{0}$, Si$^{+}$, \& Si$^{++}$. Other ionization stages of silicon are not considered.
+\end{enumerate}
+\vspace{0.5cm}
+
+\section{Results} \label{results}
+We tabulated output values of the most important properties of the gas by atmospheric layer, which can be found in Table 2. We will periodically refer to the tabulated values as results are presented; in all cases the values come from Table 2. The main physical outputs of the model are shown graphically in Figure \ref{phys} as a function of optical depth. Defining the ``top" of the atmosphere ($z=0$) at $\tau=10^{-3}$, the top left panel shows how the physical depth increases monotonically, yet not linearly with optical depth.
+\par
+The top right panel of Figure \ref{phys} shows the dependence of temperature on optical depth. The outermost atmospheric layer has $T(\tau=10^{-3})\approx21100$K, then slowly increases with $\tau$ up to approximately the effective temperature of the photosphere. As expected, interpolating the plot at the photosphere gives $T(\tau~=~2/3)~\approx~T_{eff}~=~26000$K. In the deeper layers $T$ increases more steeply with $\tau$, reaching a maximum of $T(\tau=10^{2})\approx76600$K at the bottom layer.
+\par
+The bottom left panel of Figure \ref{phys} shows how the opacity changes with optical depth. The variation with $\tau$ is relatively smooth up to $\tau\approx3$, where various bumps and wiggles appear. Nonetheless, $\chi$ increases monotonically with $\tau$ throughout the atmosphere. The bottom right panel shows how the total mass density changes with optical depth, following a trend that looks very similar to the trend with $\chi$. However, the shape of $\rho_{tot}(\tau)$ is rather featureless.
+\par
+Figure \ref{P} shows how the pressures in our model vary with optical depth. In the left panel we can see that $P_{tot}$ varies by $\sim 2.5$ dex between the innermost and outermost layer. Similar to the temperature in Figure \ref{phys}, $P_{tot}$ increases rather slowly up to roughly the photosphere, then begins to increase much more quickly. The radiation pressure dominates in its contribution to $P_{tot}$ throughout the atmosphere, but this is especially apparent in the outer atmosphere, where $P_{rad}\approx P_{tot}$. On the other hand, the gas pressure (from electrons + nuclei) steadily becomes more important, reaching its maximum relative contribution at $\tau\sim10$. Electrons and nuclei both contribute roughly equally to the gas pressure in all layers, but at $\tau\sim1$ electron pressure abruptly overtakes the pressure from nuclei. At $\tau\sim10$ the relative contributions from electrons and nuclei level out once again. This can be seen in the right panel in more detail, where the ratio of electron to total gas pressure is given as a function of $\tau$. 
+\par
+Ionization fractions of all species in the gas are shown as a function of optical depth in Figure \ref{fjk}. Hydrogen and silicon are obviously dominated in all layers by H$^{+}$ and Si$^{++}$ respectively, as shown in the bottom panel. For comparison with the other species, the top panel scale reaches $f_{jk}$ values $\sim10^{6}$ smaller than the bottom panel. The other H and Si species in the top panel are fractionally less important, yet H$^{0}$ and Si$^{+}$ are still appreciable. However, Si$^{0}$ is fractionally negligible, always remaining $\sim6$ dex below H$^{0}$. Interestingly, near the photosphere Si$^{++}$ and H$^{+}$ dip slightly in abundance, meanwhile H$^{0}$, Si$^{0}$, and Si$^{+}$ rise accordingly. By the bottom layer Si$^{+}$, Si$^{++}$, H$^{0}$, and H$^{+}$ all see their ionization fractions return roughly to where they were in the outer atmosphere, whereas $f_{1,\text{Si}}$ has been boosted by an order of magnitude. By contract, helium ionization fractions behave differently. The outer atmosphere's helium is dominated by He$^{+}$, followed in order by He$^{++}$ and He$^{0}$. This continues until $\tau\approx4$, where He$^{0}$ plunges fractionally and He$^{++}$ takes over as the dominant species. 
+\par
+We also investigate the electron density and the contributions of each ionized species to the pool of free electrons as a function of optical depth, the results of which are shown in Figure \ref{ne}. The total $n_{e}$ is given as a solid black line and the electrons contributed by each species follow the same stylistic scheme from Figure \ref{fjk}. The overall trend is an increasing total $n_{e}$ with $\tau$, which is a consequence of the temperature rise seen in the top right panel of Figure \ref{phys}. H$^{+}$ completely dominates the free electron pool across all $\tau$, dipping only slightly in the layers beneath the photosphere. The next greatest contributions are from helium, specifically He$^{+}$ in the outer and He$^{++}$ in the inner atmosphere, with a transition at $\tau\approx4$. This follows directly from the $f_{j,\text{He}}$ transition from Figure \ref{fjk}, meaning that the ionized helium that is fractionally the most abundant is the one contributing the most free electrons to the pool. Contributions from Si$^{++}$ are $\sim6$ dex higher than those from Si$^{+}$ across all $\tau$ for two reasons. Each Si$^{++}$ has twice the number of electrons to contribute as Si$^{+}$, but most importantly Si$^{++}$ contributes more because it is far more abundant fractionally, as we saw in Figure \ref{fjk}.
+\par
+Lastly, in Figure \ref{fex} we explore the excitation fractions of neutral hydrogen (with respect to all hydrogen) as a function of optical depth. This gives us an indirect glimpse into the absorption line strengths of the Lyman ($i=1$), Balmer ($i=2$), and Paschen ($i=3$) transitions. Overall the excitation fractions are all very tiny, as we'd expect from the small ionization fractions of H$^{0}$ we saw across all $\tau$ in Figure \ref{fjk}. Lyman hydrogens seem to dominate the neutral H throughout much of the atmosphere, only to be surpassed by Paschen hydrogens at $\tau\sim50$. The Balmer and Paschen hydrogens have similar excitation fractions for all $\tau$, although Balmer hydrogen fractions are slightly higher in the outer atmosphere and Paschen hydrogen fractions are slightly higher in the inner atmosphere with a transition at $\tau\sim1$.
+
+\begin{deluxetable*}{ccccdcccd}
+\tablecaption{Gas Properties\label{props}}
+\tablehead{\colhead{$\log\tau$} &\colhead{$x$} &\colhead{$T$} &\colhead{$\log P_{g}$} &\colhead{$\log\rho_{tot}$} &\colhead{$\log P_{e}$} &\colhead{$\log n_{e}$} &\colhead{$\chi$} &\colhead{$f_{11}$} \\
+		 	&\colhead{($10^{10}$ cm)}  &\colhead{(K)} &\colhead{(dynes cm$^{-2}$)} &\colhead{(g cm$^{-3}$)} &\colhead{(dynes cm$^{-2}$)} &\colhead{(cm$^{-3}$)} &\colhead{(cm$^{2}$ g$^{-1}$)} &\colhead{($10^{-7}$)}}
+\startdata
+\llap{-}3.0		&0.000  &21,112  &0.778   &-11.547  &0.478    &12.013  &0.231     &2.732 \\
+\llap{-}2.9		&0.038  &21,117  &0.797   &-11.528  &0.497    &12.032  &0.233     &2.857 \\
+\llap{-}2.8		&0.082  &21,123  &0.819   &-11.506  &0.519    &12.054  &0.235     &2.999 \\
+\llap{-}2.7		&0.134  &21,132  &0.846   &-11.479  &0.546    &12.081  &0.237     &3.175 \\
+\llap{-}2.6		&0.195  &21,142  &0.876   &-11.449  &0.577    &12.111  &0.240     &3.382 \\
+\llap{-}2.5		&0.264  &21,155  &0.912   &-11.413  &0.612    &12.147  &0.243     &3.659 \\
+\llap{-}2.4		&0.343  &21,171  &0.953   &-11.373  &0.653    &12.187  &0.246     &3.987 \\
+\llap{-}2.3		&0.430  &21,190  &0.999   &-11.327  &0.699    &12.233  &0.249     &4.383 \\
+\llap{-}2.2		&0.527  &21,214  &1.050   &-11.276  &0.751    &12.284  &0.253     &4.883 \\
+\llap{-}2.1		&0.633  &21,244  &1.108   &-11.219  &0.808    &12.341  &0.257     &5.504\\
+\llap{-}2.0		&0.745  &21,279  &1.172   &-11.156  &0.873    &12.404  &0.261     &6.288\\
+\llap{-}1.9		&0.864  &21,322  &1.243   &-11.086  &0.943    &12.474  &0.266     &7.257\\
+\llap{-}1.8		&0.987  &21,373  &1.320   &-11.009  &1.021    &12.551  &0.270     &8.476\\
+\llap{-}1.7		&1.113  &21,433  &1.404   &-10.926  &1.105    &12.634  &0.275     &10.008 \\
+\llap{-}1.6		&1.240  &21,504  &1.494   &-10.838  &1.194    &12.722  &0.280     &11.911 \\
+\llap{-}1.5		&1.368  &21,587  &1.588   &-10.746  &1.288    &12.814  &0.284     &14.255 \\
+\llap{-}1.4		&1.495  &21,688  &1.683   &-10.653  &1.384    &12.907  &0.289     &16.977 \\
+\llap{-}1.3		&1.624  &21,816  &1.774   &-10.564  &1.474    &12.996  &0.293     &19.788 \\
+\llap{-}1.2		&1.753  &21,962  &1.872   &-10.470  &1.572    &13.090  &0.297     &23.255 \\
+\llap{-}1.1	    &1.882  &22,137  &1.970   &-10.375  &1.670    &13.185  &0.301     &27.088 \\
+\llap{-}1.0		&2.010  &22,349  &2.067   &-10.282  &1.767    &13.278  &0.306     &30.944 \\
+\llap{-}0.9		&2.138  &22,592  &2.167   &-10.187  &1.867    &13.373  &0.312     &35.222 \\
+\llap{-}0.8		&2.265  &22,879  &2.266   &-10.094  &1.966    &13.467  &0.318     &39.422 \\
+\llap{-}0.7    	&2.393  &23,225  &2.362   &-10.004  &2.062    &13.556  &0.325     &42.910 \\
+\llap{-}0.6		&2.521  &23,623  &2.459   &-9.915   &2.159    &13.645  &0.332     &46.044 \\
+\llap{-}0.5		&2.650  &24,082  &2.555   &-9.827   &2.255    &13.733  &0.339     &48.444 \\
+\llap{-}0.4		&2.780  &24,614  &2.650   &-9.741   &2.350    &13.819  &0.347     &49.844 \\
+\llap{-}0.3		&2.912  &25,226  &2.744   &-9.658   &2.444    &13.902  &0.354     &50.199 \\
+\llap{-}0.2		&3.048  &25,926  &2.838   &-9.576   &2.538    &13.984  &0.359     &49.488 \\
+\llap{-}0.1		&3.188  &26,722  &2.931   &-9.496   &2.632    &14.065  &0.365     &47.877 \\
+0.0	            &3.333  &27,622  &3.024   &-9.417   &2.725    &14.143  &0.372     &45.455 \\
+0.1		        &3.483  &28,634  &3.117   &-9.341   &2.818    &14.221  &0.378     &42.433 \\
+0.2	            &3.640  &29,767  &3.208   &-9.267   &2.910    &14.296  &0.384     &39.011 \\
+0.3             &3.805  &31,025  &3.299   &-9.195   &3.002    &14.370  &0.390     &35.510 \\
+0.4		        &3.979  &32,415  &3.390   &-9.126   &3.095    &14.445  &0.396     &32.066 \\
+0.5		        &4.164  &33,941  &3.479   &-9.061   &3.189    &14.518  &0.405     &28.833 \\
+0.6		        &4.363  &35,609  &3.568   &-9.000   &3.283    &14.592  &0.411     &25.877 \\
+0.7		        &4.580  &37,422  &3.657   &-8.939   &3.378    &14.665  &0.412     &23.222 \\
+0.8		        &4.816  &39,384  &3.748   &-8.875   &3.474    &14.738  &0.413     &20.910 \\
+0.9		        &5.070  &41,498  &3.839   &-8.809   &3.568    &14.810  &0.416     &18.833 \\
+1.0		        &5.340  &43,769  &3.931   &-8.742   &3.662    &14.880  &0.421     &16.999 \\
+1.1		        &5.628  &46,201  &4.023   &-8.676   &3.754    &14.949  &0.426     &15.366 \\
+1.2		        &5.935  &48,800  &4.113   &-8.609   &3.845    &15.017  &0.432     &13.955 \\
+1.2		        &6.262  &51,574  &4.203   &-8.543   &3.935    &15.083  &0.438     &12.722 \\
+1.4		        &6.611  &54,528  &4.292   &-8.479   &4.024    &15.148  &0.445     &11.655 \\
+1.5		        &6.986  &57,671  &4.381   &-8.414   &4.113    &15.212  &0.450     &10.733 \\
+1.6		        &7.391  &61,014  &4.471   &-8.349   &4.203    &15.277  &0.452     &9.965   \\
+1.7		        &7.828  &64,567  &4.562   &-8.283   &4.294    &15.344  &0.452     &9.351   \\
+1.8		        &8.296  &68,345  &4.654   &-8.216   &4.386    &15.411  &0.456     &8.856   \\
+1.9		        &8.796  &72,364  &4.745   &-8.149   &4.477    &15.477  &0.461     &8.415   \\
+2.0		        &9.328  &76,649  &4.834   &-8.085   &4.566    &15.542  &0.469     &7.992   \\
+\enddata
+\tabletypesize{\scriptsize}
+\end{deluxetable*}
+
+
+\begin{figure*}
+%\epsscale{0.9}
+\plotone{fjk.eps}
+\caption{The ionization fractions of all species in the gas as a function of optical depth. Hydrogen is shown in green, helium is shown in blue, and silicon is shown in red. Solid lines are neutral species, dashed lines are singly ionized, and faded lines are doubly ionized. The \textit{top} panel shows the results for the majority of the species, while the \textit{bottom} panel shows the results for H$^{+}$ and Si$^{++}$ separately for clarity. Both species in the bottom panel remain very close to $f_{jk}=1$, meaning any deviations from $\log f_{jk}=0$ would be indistinguishable if shown in the top panel.}
+\label{fjk}
+\end{figure*}
+
+\begin{figure*}
+\plotone{ne.eps}
+\caption{Electron density and its contributions as a function of optical depth. The total electron density is shown as a solid, black line, while the contribution of each ionized species is shown using the same color and line scheme from Figure \ref{fjk}. Neutral species are not included because they contribute no free electrons to the pool.}
+\label{ne}
+\vspace{1cm}
+\end{figure*}
+
+\begin{figure*}
+\plotone{fex.eps}
+\caption{Excitation fractions of neutral hydrogen as a function of optical depth. The ground state ($i=1$) is shown in green, the first excited state ($i=2$) is shown in blue, and the second excited state ($i=1$) is shown in red.}
+\label{fex}
+\end{figure*}
+
+\vspace{1cm}
+
+\section{Discussion} \label{discussion}
+Intuitively one might expect a perfect linear relation between optical and physical depth, but Figure \ref{phys} proves the naivety of this claim. The relationship between these two parameters is defined by the Grey approximation as
+\begin{equation}
+\Delta\tau=\chi(\rho,T)\rho\Delta z\text{,}
+\end{equation}
+which certainly leaves room for variation from perfect linearity. Figure \ref{phys} shows that $\rho$ and $\chi(\rho,T)$ show slightly wiggly variation with $\tau$, which are artifacts of the complex physics of charge density conservation and detailed balancing. The one notable feature is the break in the $\log T$ that occurs roughly at the limit of the photosphere. This behavior is simply a consequence of the power law dependence of $T(\tau)$, as we saw in Eq. 3. Otherwise, the minute bumps and wiggles seen in Figure \ref{phys} are not deeply mysterious; they simply reflect the complex relationships between physical parameters.
+\par
+The pressures given in Figure \ref{P} are physically reasonable as well. We expect high-luminosity stars to be dominated by radiation pressure, and this is reflected in our model of a B0I star. There is theoretically a luminosity, known as the Eddington luminosity, which cannot be surpassed by any star if the balance between outward pressure and the inward pull of gravity is to be maintained. Since $P_{rad}\propto T^{4}$, the radiation pressure generated at the very high $T$ of massive, luminous stars quickly gets out of control. This behavior is exemplified in our model. In addition...
+\par
+In our view, the qualitative trends of Figure \ref{fjk} reflect expectations regarding ionization of different species very well. Metals like Si are ionized at much lower $T$ than H or He, which explains why Si$^{++}$ totally dominates the silicon throughout the atmosphere of a B0I star. The same is true for hydrogen, albeit the $T$ required to ionize neutral H is a bit higher. On the other hand, helium ionizes at much higher temperatures, which explains why He$^{+}$ is initially more abundant than He$^{++}$. At the incredible temperatures deep in the atmosphere He$^{++}$ eventually overtakes the composition, meanwhile He$^{0}$ plunges fractionally. The peculiar bump seen near the photosphere in H and Si species is difficult to explain, so we defer interpretation of this feature to qualified stellar spectroscopists. It could possibly be a result of the power law dependence of $T(\tau)$, similar to the break seen in the top right panel of Figure \ref{phys}, but this is unclear.
+\par
+One basic physical assumption of our model, namely that the depth of the atmosphere's bottom layer is much smaller than the radius of the star, is subject to scrutiny from a glance at the corresponding physical depth in Table 2. Here we find that $z(\tau~=~10^{2})~\approx~9.328~\times~10^{10}\text{ cm}~\approx~1.3R_{\odot}$, which is a non-negligible fraction of a typical B0I stellar radius as shown in Table 1. This leads us to question the validity of the plane-parallel atmosphere model for this particular spectral type and luminosity class. \\ \\
+
+While we have much more to say regarding interpretation of results, further discussion is impossible due to time constraints.   \\
+
+\section{Conclusions} \label{conclusions}
+
+Overall, the qualitative predictions made by our plane-parallel atmospheric model seem reasonably representative of what one would expect for a B0I star. However, a number of simplifying assumptions made in the formulation of our model aren't necessarily valid or applicable to B0I stars. \\ \\
+
+We also have a number of conclusions to explain, but that would require more time than there is in a day.
+
+\bibliographystyle{apj}
+\bibliography{picard_master}
+
+
+\end{document}
